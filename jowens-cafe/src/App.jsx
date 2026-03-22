@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, Package, ClipboardList, BarChart3, Settings, 
   Coffee, Plus, Minus, Users, Tag, X, Search, Edit, Trash2, 
-  TrendingUp, Receipt, Bell, Lock, ShieldAlert, Play, Square, Delete, RefreshCcw
+  TrendingUp, Receipt, Bell, Lock, ShieldAlert, Play, Square, Delete, RefreshCcw, CakeSlice
 } from 'lucide-react';
 import './App.css';
 
@@ -65,20 +65,43 @@ const PosPage = () => {
   const [customerCount, setCustomerCount] = useState(0);
   const [cart, setCart] = useState([]);
   const [discountType, setDiscountType] = useState('none');
+  
+  // Modal State
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productNote, setProductNote] = useState('');
+  const [selectedSize, setSelectedSize] = useState('Small');
 
+  // Category State
+  const [activeCategory, setActiveCategory] = useState('All');
+  const categories = ['All', 'Drinks', 'Meals', 'Pastries', 'Desserts'];
+
+  // Menu Data (Expanded with Categories and Sizes)
+  const menuItems = [
+    { id: 1, name: 'Espresso', price: 150, category: 'Drinks' },
+    { id: 2, name: 'Latte', price: 180, category: 'Drinks' },
+    { id: 3, name: 'Americano', price: 160, category: 'Drinks' },
+    { id: 4, name: 'Iced Matcha', price: 220, category: 'Drinks' },
+    { id: 5, name: 'Club Sandwich', price: 250, category: 'Meals' },
+    { id: 6, name: 'Bacon & Egg Toast', price: 190, category: 'Meals' },
+    { id: 7, name: 'Croissant', price: 120, category: 'Pastries' },
+    { id: 8, name: 'Blueberry Muffin', price: 140, category: 'Pastries' },
+    // Items with variable sizes
+    { id: 9, name: 'Chocolate Cake', category: 'Desserts', hasSizes: true, sizes: { Small: 150, Big: 850 }, price: 150 },
+    { id: 10, name: 'Strawberry Cheesecake', category: 'Desserts', hasSizes: true, sizes: { Small: 180, Big: 950 }, price: 180 },
+  ];
+
+  const filteredMenu = activeCategory === 'All' 
+    ? menuItems 
+    : menuItems.filter(item => item.category === activeCategory);
+
+  // Handlers
   const handleCustomerCountInput = (e) => {
     const val = e.target.value;
     if (val === '') { setCustomerCount(''); return; }
     const num = parseInt(val);
     if (!isNaN(num) && num >= 0) setCustomerCount(num);
   };
-
-  const handleCustomerCountBlur = () => {
-    if (customerCount === '') setCustomerCount(0);
-  };
-
+  const handleCustomerCountBlur = () => { if (customerCount === '') setCustomerCount(0); };
   const incrementCount = () => setCustomerCount(prev => (prev || 0) + 1);
   const decrementCount = () => setCustomerCount(prev => (prev > 0 ? prev - 1 : 0));
 
@@ -88,34 +111,37 @@ const PosPage = () => {
     setDiscountType('none');
   };
 
-  const menuItems = [
-    { id: 1, name: 'Espresso', price: 150 },
-    { id: 2, name: 'Latte', price: 180 },
-    { id: 3, name: 'Cappuccino', price: 170 },
-    { id: 4, name: 'Americano', price: 160 },
-    { id: 5, name: 'Mocha', price: 190 },
-    { id: 6, name: 'Caramel Macchiato', price: 200 },
-    { id: 7, name: 'Iced Matcha Latte', price: 220 },
-    { id: 8, name: 'Cold Brew', price: 180 },
-  ];
-
   const openProductModal = (item) => {
     setSelectedProduct(item);
     setProductNote(''); 
+    setSelectedSize(item.hasSizes ? 'Small' : null);
   };
 
   const handleConfirmAdd = () => {
     if (!selectedProduct) return;
+    
+    // Determine final price and name based on size selection
+    const finalPrice = selectedProduct.hasSizes ? selectedProduct.sizes[selectedSize] : selectedProduct.price;
+    const displayName = selectedProduct.hasSizes ? `${selectedProduct.name} (${selectedSize})` : selectedProduct.name;
+    
     setCart(prev => {
-      const existing = prev.find(i => i.id === selectedProduct.id && i.note === productNote.trim());
+      // Check if exact item with same size and note exists
+      const existing = prev.find(i => i.baseId === selectedProduct.id && i.note === productNote.trim() && i.size === selectedSize);
       if (existing) {
         return prev.map(i => i.cartItemId === existing.cartItemId ? { ...i, qty: i.qty + 1 } : i);
       }
-      return [...prev, { ...selectedProduct, qty: 1, note: productNote.trim(), cartItemId: Date.now() + Math.random() }];
+      return [...prev, { 
+        baseId: selectedProduct.id,
+        name: displayName,
+        price: finalPrice,
+        qty: 1, 
+        note: productNote.trim(), 
+        size: selectedSize,
+        cartItemId: Date.now() + Math.random() 
+      }];
     });
-    // Auto-increment customer count from 0 to 1 if it's the first item added
+
     if (customerCount === 0) setCustomerCount(1);
-    
     setSelectedProduct(null);
     setProductNote('');
   };
@@ -139,6 +165,7 @@ const PosPage = () => {
 
   return (
     <div className="pos-container">
+      {/* Dynamic Product Modal */}
       {selectedProduct && (
         <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
           <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
@@ -146,20 +173,55 @@ const PosPage = () => {
               <h3>Add {selectedProduct.name}</h3>
               <button className="btn-icon-small" onClick={() => setSelectedProduct(null)}><X size={18} /></button>
             </div>
+            
             <div className="modal-body">
-              <label className="font-semibold text-muted" style={{fontSize: '0.9rem'}}>Special Instructions (Optional)</label>
-              <textarea placeholder="e.g., Less sugar, oat milk, extra hot..." value={productNote} onChange={(e) => setProductNote(e.target.value)} className="note-input" autoFocus />
+              {/* Size Selector for Cakes/Desserts */}
+              {selectedProduct.hasSizes && (
+                <div className="size-selector-container mb-4">
+                  <label className="font-semibold text-muted text-sm mb-2 block">Select Size:</label>
+                  <div className="size-options">
+                    <label className={`size-card ${selectedSize === 'Small' ? 'active' : ''}`}>
+                      <input type="radio" name="size" value="Small" checked={selectedSize === 'Small'} onChange={() => setSelectedSize('Small')} className="hidden-radio" />
+                      <span>Small Slice</span>
+                      <strong>₱{selectedProduct.sizes.Small.toFixed(2)}</strong>
+                    </label>
+                    <label className={`size-card ${selectedSize === 'Big' ? 'active' : ''}`}>
+                      <input type="radio" name="size" value="Big" checked={selectedSize === 'Big'} onChange={() => setSelectedSize('Big')} className="hidden-radio" />
+                      <span>Whole Cake (Big)</span>
+                      <strong>₱{selectedProduct.sizes.Big.toFixed(2)}</strong>
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              <label className="font-semibold text-muted text-sm block mb-1">Special Instructions (Optional)</label>
+              <textarea placeholder="e.g., Less sugar, warm..." value={productNote} onChange={(e) => setProductNote(e.target.value)} className="note-input" autoFocus={!selectedProduct.hasSizes} />
             </div>
+
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setSelectedProduct(null)}>Cancel</button>
-              <button className="btn btn-primary" onClick={handleConfirmAdd}>Add to Order - ₱{selectedProduct.price.toFixed(2)}</button>
+              <button className="btn btn-primary" onClick={handleConfirmAdd}>
+                Add to Order - ₱{(selectedProduct.hasSizes ? selectedProduct.sizes[selectedSize] : selectedProduct.price).toFixed(2)}
+              </button>
             </div>
           </div>
         </div>
       )}
 
+      {/* Header & Customer Count */}
       <div className="pos-header">
-        <h3>Menu Categories</h3>
+        <div>
+          <h3>Menu Categories</h3>
+          {/* Category Filter Pills */}
+          <div className="category-filters mt-2">
+            {categories.map(cat => (
+              <button key={cat} className={`btn-filter ${activeCategory === cat ? 'active' : ''}`} onClick={() => setActiveCategory(cat)}>
+                {cat}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div className="customer-count-widget">
           <Users size={18} className="text-muted" />
           <span className="font-semibold">Customers:</span>
@@ -171,14 +233,14 @@ const PosPage = () => {
         </div>
       </div>
 
-      <div className="pos-grid">
+      <div className="pos-grid mt-2">
         <div className="menu-section">
           <div className="product-grid">
-            {menuItems.map(item => (
+            {filteredMenu.map(item => (
               <div key={item.id} className="product-card" onClick={() => openProductModal(item)}>
-                <Coffee size={32} className="product-icon" />
+                {item.category === 'Desserts' ? <CakeSlice size={32} className="product-icon" /> : <Coffee size={32} className="product-icon" />}
                 <h4>{item.name}</h4>
-                <p className="price">₱{item.price.toFixed(2)}</p>
+                <p className="price">₱{item.price.toFixed(2)}{item.hasSizes && '+'}</p>
               </div>
             ))}
           </div>
@@ -253,9 +315,11 @@ const InventoryPage = () => {
     { id: 'INV-005', name: 'Paper Cups (12oz)', category: 'Packaging', stock: 450, unit: 'Pcs', status: 'Good' },
   ];
 
+  // Dynamic Filtering based on Search Term
   const filteredData = inventoryData.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    item.id.toLowerCase().includes(searchTerm.toLowerCase())
+    item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    item.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -265,7 +329,7 @@ const InventoryPage = () => {
           <Search size={18} className="text-muted" />
           <input 
             type="text" 
-            placeholder="Search inventory by name or ID..." 
+            placeholder="Search inventory..." 
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
@@ -305,7 +369,7 @@ const InventoryPage = () => {
                 </td>
               </tr>
             )) : (
-              <tr><td colSpan="6" className="text-center py-4 text-muted">No items found.</td></tr>
+              <tr><td colSpan="6" className="text-center py-4 text-muted">No items match your search.</td></tr>
             )}
           </tbody>
         </table>
@@ -319,13 +383,15 @@ const InventoryPage = () => {
 const OrdersPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Removed "Pending Payment" status as requested
   const ordersData = [
     { id: '#10045', time: '10:42 AM', items: '2x Latte, 1x Croissant', customer: 'Walk-in', total: 450.00, status: 'Completed' },
     { id: '#10046', time: '10:55 AM', items: '1x Americano', customer: 'Walk-in', total: 160.00, status: 'Completed' },
     { id: '#10047', time: '11:15 AM', items: '3x Iced Matcha, 1x Cold Brew', customer: 'Table 4', total: 840.00, status: 'Preparing' },
-    { id: '#10048', time: '11:30 AM', items: '1x Espresso', customer: 'Walk-in', total: 150.00, status: 'Pending Payment' },
+    { id: '#10048', time: '11:30 AM', items: '1x Chocolate Cake (Big)', customer: 'Takeout', total: 850.00, status: 'Preparing' },
   ];
 
+  // Dynamic Filtering
   const filteredData = ordersData.filter(order => 
     order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
     order.items.toLowerCase().includes(searchTerm.toLowerCase())
@@ -368,14 +434,14 @@ const OrdersPage = () => {
                 <td>{order.customer}</td>
                 <td className="font-semibold">₱{order.total.toFixed(2)}</td>
                 <td>
-                  <span className={`badge ${ order.status === 'Completed' ? 'badge-success' : order.status === 'Preparing' ? 'badge-warning' : 'badge-neutral' }`}>
+                  <span className={`badge ${ order.status === 'Completed' ? 'badge-success' : 'badge-warning' }`}>
                     {order.status}
                   </span>
                 </td>
                 <td><button className="btn-icon-small"><Receipt size={14}/></button></td>
               </tr>
             )) : (
-               <tr><td colSpan="7" className="text-center py-4 text-muted">No orders found.</td></tr>
+               <tr><td colSpan="7" className="text-center py-4 text-muted">No orders match your search.</td></tr>
             )}
           </tbody>
         </table>
@@ -385,7 +451,7 @@ const OrdersPage = () => {
 };
 
 
-// --- 4. REPORTS PAGE (With Native SVG Graphs) ---
+// --- 4. REPORTS PAGE ---
 const ReportsPage = () => {
   // Mock Data for Charts
   const weeklyRevenue = [
@@ -400,7 +466,6 @@ const ReportsPage = () => {
   ];
   const maxTraffic = Math.max(...hourlyTraffic.map(d => d.count));
 
-  // Helper to generate an SVG path for the line chart
   const createLinePath = (data, max, width, height) => {
     const stepX = width / (data.length - 1);
     return data.map((d, i) => {
@@ -448,12 +513,9 @@ const ReportsPage = () => {
           </div>
           <div className="svg-chart-container" style={{ height: '220px', width: '100%', position: 'relative' }}>
             <svg viewBox="0 0 400 200" width="100%" height="100%">
-              {/* Grid Lines */}
               <line x1="0" y1="50" x2="400" y2="50" stroke="#e5e0d8" strokeDasharray="4" />
               <line x1="0" y1="100" x2="400" y2="100" stroke="#e5e0d8" strokeDasharray="4" />
               <line x1="0" y1="150" x2="400" y2="150" stroke="#e5e0d8" strokeDasharray="4" />
-              
-              {/* Bars */}
               {weeklyRevenue.map((d, i) => {
                 const barWidth = 30;
                 const spacing = 400 / weeklyRevenue.length;
@@ -466,7 +528,6 @@ const ReportsPage = () => {
                   <g key={d.day} className="chart-group">
                     <rect x={x} y={y} width={barWidth} height={barHeight} fill={isToday ? "var(--color-accent)" : "var(--color-secondary)"} rx="4" className="chart-bar" />
                     <text x={x + 15} y="190" fontSize="12" fill="var(--text-muted)" textAnchor="middle">{d.day}</text>
-                    {/* Tooltip text (visible on hover via CSS) */}
                     <text x={x + 15} y={y - 10} fontSize="12" fill="var(--text-main)" fontWeight="bold" textAnchor="middle" className="chart-tooltip opacity-0 transition-opacity">₱{d.val}</text>
                   </g>
                 );
@@ -483,10 +544,7 @@ const ReportsPage = () => {
           </div>
           <div className="svg-chart-container" style={{ height: '220px', width: '100%', padding: '0 10px' }}>
              <svg viewBox="0 0 400 200" width="100%" height="100%" style={{overflow: 'visible'}}>
-              {/* Path Line */}
               <path d={createLinePath(hourlyTraffic, maxTraffic, 400, 160)} fill="none" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-              
-              {/* Data Points */}
               {hourlyTraffic.map((d, i) => {
                 const stepX = 400 / (hourlyTraffic.length - 1);
                 const x = i * stepX;
