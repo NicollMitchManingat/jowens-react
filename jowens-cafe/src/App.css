@@ -1,0 +1,155 @@
+:root {
+  --primary: #4a3f35;
+  --bg-cream: #f5f5dc;
+  --bg-white: #ffffff;
+  --text-main: #1a1512; 
+  --text-muted: #5c534e;
+  --accent: #8b735b;
+}
+
+/* Reset and Base Layout */
+* { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', sans-serif; }
+
+body { 
+  background: var(--bg-cream); 
+  overflow: hidden; /* Prevents double scrollbars */
+}
+
+.pos-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+}
+
+/* Sidebar: Fixed narrow width with flex alignment */
+.sidebar {
+  width: 80px;
+  background: var(--primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 25px 0;
+  flex-shrink: 0;
+}
+
+.logo-box {
+  background: white;
+  color: var(--primary);
+  width: 45px;
+  height: 45px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-bottom: 40px;
+}
+
+.nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+  color: #a89f94;
+}
+
+.nav-icon.active { color: white; }
+.nav-icon { cursor: pointer; transition: 0.2s; }
+.settings-bottom { margin-top: auto; padding-bottom: 25px; }
+
+/* Main Content Wrapper */
+.content-wrapper {
+  flex: 1;
+  background: var(--bg-white);
+  margin: 15px;
+  border-radius: 30px;
+  display: flex;
+  overflow: hidden; /* Keeps children contained */
+}
+
+/* POS Specific Layout: 70/30 Split */
+.main-layout {
+  display: flex;
+  width: 100%;
+}
+
+.menu-section {
+  flex: 7; /* 70% */
+  padding: 40px;
+  overflow-y: auto;
+  border-right: 1px solid #f0f0f0;
+}
+
+.order-panel {
+  flex: 3; /* 30% */
+  display: flex;
+  flex-direction: column;
+  background: #faf9f6;
+}
+
+/* Typography Fixes: Solid colors for readability */
+.readable-title {
+  color: var(--text-main);
+  font-size: 2.2rem;
+  font-weight: 800;
+  margin-bottom: 5px;
+  text-align: left; /* Ensures it doesn't float to center */
+}
+
+.readable-subtitle {
+  color: var(--text-muted);
+  font-size: 1rem;
+  margin-bottom: 30px;
+}
+
+/* Product Grid Alignment */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 25px;
+}
+
+.product-card {
+  background: white;
+  padding: 25px;
+  border-radius: 20px;
+  border: 1px solid #eee;
+  text-align: center;
+  position: relative;
+  cursor: pointer;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+
+.card-title { color: var(--text-main); font-weight: 700; }
+.card-price { color: var(--accent); font-weight: 600; margin-top: 5px; }
+
+/* Order Panel Components */
+.occupancy-section {
+  padding: 25px;
+  border-bottom: 1px solid #eee;
+  text-align: center;
+}
+
+.occupancy-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+}
+
+.count-display { font-size: 1.5rem; font-weight: 800; color: var(--text-main); }
+
+.cart-content { flex: 1; padding: 25px; overflow-y: auto; }
+.cart-summary { padding: 25px; background: white; border-top: 1px solid #eee; }
+
+.complete-btn {
+  width: 100%;
+  padding: 16px;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 15px;
+}
