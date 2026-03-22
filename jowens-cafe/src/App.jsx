@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShoppingCart, Package, ClipboardList, BarChart3, Settings, 
   Coffee, Plus, Minus, Users, Tag, X, Search, Edit, Trash2, 
-  TrendingUp, Receipt, Bell, Lock, ShieldAlert, Play, Square, Delete
+  TrendingUp, Receipt, Bell, Lock, ShieldAlert, Play, Square, Delete, RefreshCcw
 } from 'lucide-react';
 import './App.css';
 
@@ -15,9 +15,7 @@ const PinPad = ({ expectedPin, onSuccess, onCancel, title, hint }) => {
     if (pin.length < 4) setPin(p => p + num);
   };
 
-  const handleBackspace = () => {
-    setPin(p => p.slice(0, -1));
-  };
+  const handleBackspace = () => setPin(p => p.slice(0, -1));
 
   useEffect(() => {
     if (pin.length === 4) {
@@ -64,7 +62,7 @@ const PinPad = ({ expectedPin, onSuccess, onCancel, title, hint }) => {
 
 // --- 1. POS PAGE ---
 const PosPage = () => {
-  const [customerCount, setCustomerCount] = useState(1);
+  const [customerCount, setCustomerCount] = useState(0);
   const [cart, setCart] = useState([]);
   const [discountType, setDiscountType] = useState('none');
   const [selectedProduct, setSelectedProduct] = useState(null);
@@ -78,11 +76,17 @@ const PosPage = () => {
   };
 
   const handleCustomerCountBlur = () => {
-    if (customerCount === '' || customerCount < 1) setCustomerCount(1);
+    if (customerCount === '') setCustomerCount(0);
   };
 
   const incrementCount = () => setCustomerCount(prev => (prev || 0) + 1);
-  const decrementCount = () => setCustomerCount(prev => (prev > 1 ? prev - 1 : 1));
+  const decrementCount = () => setCustomerCount(prev => (prev > 0 ? prev - 1 : 0));
+
+  const resetOrder = () => {
+    setCart([]);
+    setCustomerCount(0);
+    setDiscountType('none');
+  };
 
   const menuItems = [
     { id: 1, name: 'Espresso', price: 150 },
@@ -109,6 +113,9 @@ const PosPage = () => {
       }
       return [...prev, { ...selectedProduct, qty: 1, note: productNote.trim(), cartItemId: Date.now() + Math.random() }];
     });
+    // Auto-increment customer count from 0 to 1 if it's the first item added
+    if (customerCount === 0) setCustomerCount(1);
+    
     setSelectedProduct(null);
     setProductNote('');
   };
@@ -158,7 +165,7 @@ const PosPage = () => {
           <span className="font-semibold">Customers:</span>
           <div className="count-controls">
             <button className="btn-icon-small" onClick={decrementCount}><Minus size={14} /></button>
-            <input type="number" className="count-input" value={customerCount} onChange={handleCustomerCountInput} onBlur={handleCustomerCountBlur} min="1"/>
+            <input type="number" className="count-input" value={customerCount} onChange={handleCustomerCountInput} onBlur={handleCustomerCountBlur} min="0"/>
             <button className="btn-icon-small" onClick={incrementCount}><Plus size={14} /></button>
           </div>
         </div>
@@ -180,7 +187,10 @@ const PosPage = () => {
         <div className="order-section card">
           <div className="order-header">
             <h3>Current Order</h3>
-            <span className="badge">{cart.reduce((sum, i) => sum + i.qty, 0)} Items</span>
+            <div className="flex gap-2 items-center">
+              <span className="badge">{cart.reduce((sum, i) => sum + i.qty, 0)} Items</span>
+              <button className="btn-icon-small text-danger" onClick={resetOrder} title="Clear Order"><RefreshCcw size={16}/></button>
+            </div>
           </div>
 
           <div className="order-items">
@@ -220,7 +230,9 @@ const PosPage = () => {
               <div className="summary-row discount"><span>Discount</span><span>- ₱{discountAmount.toFixed(2)}</span></div>
             )}
             <div className="summary-row total"><span>Total</span><span>₱{total.toFixed(2)}</span></div>
-            <button className="btn btn-primary w-full mt-4" disabled={cart.length === 0}>Checkout</button>
+            <button className="btn btn-primary w-full mt-4" disabled={cart.length === 0 && customerCount === 0} onClick={resetOrder}>
+              Checkout & Reset
+            </button>
           </div>
         </div>
       </div>
@@ -231,20 +243,34 @@ const PosPage = () => {
 
 // --- 2. INVENTORY PAGE ---
 const InventoryPage = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+
   const inventoryData = [
     { id: 'INV-001', name: 'Arabica Beans (Dark Roast)', category: 'Ingredients', stock: 12, unit: 'kg', status: 'Good' },
     { id: 'INV-002', name: 'Whole Milk', category: 'Dairy', stock: 4, unit: 'Liters', status: 'Low Stock' },
     { id: 'INV-003', name: 'Oat Milk', category: 'Dairy', stock: 15, unit: 'Liters', status: 'Good' },
+    { id: 'INV-004', name: 'Vanilla Syrup', category: 'Syrups', stock: 2, unit: 'Bottles', status: 'Low Stock' },
+    { id: 'INV-005', name: 'Paper Cups (12oz)', category: 'Packaging', stock: 450, unit: 'Pcs', status: 'Good' },
   ];
+
+  const filteredData = inventoryData.filter(item => 
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    item.id.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="page-content">
       <div className="action-bar">
         <div className="search-bar">
           <Search size={18} className="text-muted" />
-          <input type="text" placeholder="Search inventory..." />
+          <input 
+            type="text" 
+            placeholder="Search inventory by name or ID..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
-        <button className="btn btn-primary"><Plus size={18}/> Add New Item</button>
+        <button className="btn btn-primary"><Plus size={18}/> Add Item</button>
       </div>
 
       <div className="card table-card">
@@ -260,7 +286,7 @@ const InventoryPage = () => {
             </tr>
           </thead>
           <tbody>
-            {inventoryData.map(item => (
+            {filteredData.length > 0 ? filteredData.map(item => (
               <tr key={item.id}>
                 <td className="text-muted">{item.id}</td>
                 <td className="font-semibold">{item.name}</td>
@@ -278,7 +304,9 @@ const InventoryPage = () => {
                   </div>
                 </td>
               </tr>
-            ))}
+            )) : (
+              <tr><td colSpan="6" className="text-center py-4 text-muted">No items found.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -289,17 +317,31 @@ const InventoryPage = () => {
 
 // --- 3. ORDERS PAGE ---
 const OrdersPage = () => {
+  const [searchTerm, setSearchTerm] = useState('');
+
   const ordersData = [
     { id: '#10045', time: '10:42 AM', items: '2x Latte, 1x Croissant', customer: 'Walk-in', total: 450.00, status: 'Completed' },
+    { id: '#10046', time: '10:55 AM', items: '1x Americano', customer: 'Walk-in', total: 160.00, status: 'Completed' },
     { id: '#10047', time: '11:15 AM', items: '3x Iced Matcha, 1x Cold Brew', customer: 'Table 4', total: 840.00, status: 'Preparing' },
+    { id: '#10048', time: '11:30 AM', items: '1x Espresso', customer: 'Walk-in', total: 150.00, status: 'Pending Payment' },
   ];
+
+  const filteredData = ordersData.filter(order => 
+    order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    order.items.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="page-content">
       <div className="action-bar">
         <div className="search-bar">
           <Search size={18} className="text-muted" />
-          <input type="text" placeholder="Search order ID..." />
+          <input 
+            type="text" 
+            placeholder="Search order ID or items..." 
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
         </div>
         <button className="btn btn-secondary">Filter by Date</button>
       </div>
@@ -318,7 +360,7 @@ const OrdersPage = () => {
             </tr>
           </thead>
           <tbody>
-            {ordersData.map(order => (
+            {filteredData.length > 0 ? filteredData.map(order => (
               <tr key={order.id}>
                 <td className="font-semibold text-primary">{order.id}</td>
                 <td className="text-muted">{order.time}</td>
@@ -326,13 +368,15 @@ const OrdersPage = () => {
                 <td>{order.customer}</td>
                 <td className="font-semibold">₱{order.total.toFixed(2)}</td>
                 <td>
-                  <span className={`badge ${ order.status === 'Completed' ? 'badge-success' : 'badge-warning' }`}>
+                  <span className={`badge ${ order.status === 'Completed' ? 'badge-success' : order.status === 'Preparing' ? 'badge-warning' : 'badge-neutral' }`}>
                     {order.status}
                   </span>
                 </td>
                 <td><button className="btn-icon-small"><Receipt size={14}/></button></td>
               </tr>
-            ))}
+            )) : (
+               <tr><td colSpan="7" className="text-center py-4 text-muted">No orders found.</td></tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -341,8 +385,31 @@ const OrdersPage = () => {
 };
 
 
-// --- 4. REPORTS PAGE ---
+// --- 4. REPORTS PAGE (With Native SVG Graphs) ---
 const ReportsPage = () => {
+  // Mock Data for Charts
+  const weeklyRevenue = [
+    { day: 'Mon', val: 3200 }, { day: 'Tue', val: 4100 }, { day: 'Wed', val: 3800 },
+    { day: 'Thu', val: 5600 }, { day: 'Fri', val: 8200 }, { day: 'Sat', val: 12450 }, { day: 'Sun', val: 9100 }
+  ];
+  const maxRev = Math.max(...weeklyRevenue.map(d => d.val));
+
+  const hourlyTraffic = [
+    { time: '8AM', count: 12 }, { time: '10AM', count: 28 }, { time: '12PM', count: 45 },
+    { time: '2PM', count: 32 }, { time: '4PM', count: 50 }, { time: '6PM', count: 18 }
+  ];
+  const maxTraffic = Math.max(...hourlyTraffic.map(d => d.count));
+
+  // Helper to generate an SVG path for the line chart
+  const createLinePath = (data, max, width, height) => {
+    const stepX = width / (data.length - 1);
+    return data.map((d, i) => {
+      const x = i * stepX;
+      const y = height - ((d.count / max) * height);
+      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+    }).join(' ');
+  };
+
   return (
     <div className="page-content reports-page">
       <div className="metrics-grid">
@@ -365,9 +432,74 @@ const ReportsPage = () => {
         <div className="card metric-card">
           <div className="metric-icon bg-warning-light"><Users size={24} className="text-warning" /></div>
           <div className="metric-info">
-            <p className="text-muted">Avg Customer Spend</p>
-            <h3>₱ 259.00</h3>
-            <span className="trend neutral">0% vs yesterday</span>
+            <p className="text-muted">Total Customers Today</p>
+            <h3>124</h3>
+            <span className="trend positive">+12% vs yesterday</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="settings-grid mt-4">
+        {/* SVG Bar Chart: Weekly Revenue */}
+        <div className="card">
+          <div className="flex justify-between items-center mb-6">
+            <h4 className="font-semibold text-lg">Weekly Revenue</h4>
+            <span className="badge badge-success">This Week</span>
+          </div>
+          <div className="svg-chart-container" style={{ height: '220px', width: '100%', position: 'relative' }}>
+            <svg viewBox="0 0 400 200" width="100%" height="100%">
+              {/* Grid Lines */}
+              <line x1="0" y1="50" x2="400" y2="50" stroke="#e5e0d8" strokeDasharray="4" />
+              <line x1="0" y1="100" x2="400" y2="100" stroke="#e5e0d8" strokeDasharray="4" />
+              <line x1="0" y1="150" x2="400" y2="150" stroke="#e5e0d8" strokeDasharray="4" />
+              
+              {/* Bars */}
+              {weeklyRevenue.map((d, i) => {
+                const barWidth = 30;
+                const spacing = 400 / weeklyRevenue.length;
+                const x = (i * spacing) + (spacing / 2) - (barWidth / 2);
+                const barHeight = (d.val / maxRev) * 160;
+                const y = 170 - barHeight;
+                const isToday = d.day === 'Sat';
+
+                return (
+                  <g key={d.day} className="chart-group">
+                    <rect x={x} y={y} width={barWidth} height={barHeight} fill={isToday ? "var(--color-accent)" : "var(--color-secondary)"} rx="4" className="chart-bar" />
+                    <text x={x + 15} y="190" fontSize="12" fill="var(--text-muted)" textAnchor="middle">{d.day}</text>
+                    {/* Tooltip text (visible on hover via CSS) */}
+                    <text x={x + 15} y={y - 10} fontSize="12" fill="var(--text-main)" fontWeight="bold" textAnchor="middle" className="chart-tooltip opacity-0 transition-opacity">₱{d.val}</text>
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+        </div>
+
+        {/* SVG Line Chart: Customer Traffic */}
+        <div className="card">
+          <div className="flex justify-between items-center mb-6">
+            <h4 className="font-semibold text-lg">Hourly Customer Traffic</h4>
+            <span className="badge badge-neutral">Today</span>
+          </div>
+          <div className="svg-chart-container" style={{ height: '220px', width: '100%', padding: '0 10px' }}>
+             <svg viewBox="0 0 400 200" width="100%" height="100%" style={{overflow: 'visible'}}>
+              {/* Path Line */}
+              <path d={createLinePath(hourlyTraffic, maxTraffic, 400, 160)} fill="none" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              
+              {/* Data Points */}
+              {hourlyTraffic.map((d, i) => {
+                const stepX = 400 / (hourlyTraffic.length - 1);
+                const x = i * stepX;
+                const y = 160 - ((d.count / maxTraffic) * 160);
+                return (
+                  <g key={d.time} className="chart-group">
+                    <circle cx={x} cy={y} r="6" fill="var(--bg-surface)" stroke="var(--color-primary)" strokeWidth="3" className="chart-point" />
+                    <text x={x} y="190" fontSize="12" fill="var(--text-muted)" textAnchor="middle">{d.time}</text>
+                    <text x={x} y={y - 15} fontSize="12" fill="var(--text-main)" fontWeight="bold" textAnchor="middle" className="chart-tooltip opacity-0 transition-opacity">{d.count} Pax</text>
+                  </g>
+                );
+              })}
+            </svg>
           </div>
         </div>
       </div>
@@ -376,7 +508,7 @@ const ReportsPage = () => {
 };
 
 
-// --- 5. SETTINGS PAGE (Updated with Role & Session Logic) ---
+// --- 5. SETTINGS PAGE ---
 const SettingsPage = ({ userRole, setUserRole, isSessionActive, setIsSessionActive }) => {
   const [showAdminModal, setShowAdminModal] = useState(false);
 
@@ -385,97 +517,45 @@ const SettingsPage = ({ userRole, setUserRole, isSessionActive, setIsSessionActi
     setShowAdminModal(false);
   };
 
-  const toggleSession = () => {
-    setIsSessionActive(!isSessionActive);
-  };
-
   return (
     <div className="page-content settings-page">
-      
-      {/* Admin PIN Modal */}
       {showAdminModal && (
-        <PinPad 
-          expectedPin="0000" 
-          onSuccess={handleAdminSuccess} 
-          onCancel={() => setShowAdminModal(false)}
-          title="Enter Admin PIN"
-          hint="0000"
-        />
+        <PinPad expectedPin="0000" onSuccess={handleAdminSuccess} onCancel={() => setShowAdminModal(false)} title="Enter Admin PIN" hint="0000" />
       )}
 
       <div className="settings-grid">
-        
-        {/* Profile & Access Control */}
         <div className="card">
           <h3 className="mb-4 border-b pb-2">Access Control</h3>
-          
           <div className="role-status mb-4">
             <div className="flex items-center gap-2 mb-2">
               <ShieldAlert size={20} className={userRole === 'admin' ? "text-primary" : "text-muted"} />
               <span className="font-semibold text-lg">Current Role: {userRole === 'admin' ? 'Administrator' : 'Staff'}</span>
             </div>
             <p className="text-muted text-sm mb-4">
-              {userRole === 'admin' 
-                ? "You have full access to configuration and session tracking." 
-                : "Your access is limited to POS and standard operations."}
+              {userRole === 'admin' ? "You have full access to configuration." : "Your access is limited to POS operations."}
             </p>
-            
             {userRole === 'staff' ? (
-              <button className="btn btn-primary" onClick={() => setShowAdminModal(true)}>
-                Switch to Admin
-              </button>
+              <button className="btn btn-primary" onClick={() => setShowAdminModal(true)}>Switch to Admin</button>
             ) : (
-              <button className="btn btn-secondary" onClick={() => setUserRole('staff')}>
-                Switch to Staff
-              </button>
+              <button className="btn btn-secondary" onClick={() => setUserRole('staff')}>Switch to Staff</button>
             )}
           </div>
         </div>
 
-        {/* Session Tracking (Only for Admin) */}
         {userRole === 'admin' && (
           <div className="card admin-highlight">
             <h3 className="mb-4 border-b pb-2 text-primary">Session Management</h3>
-            
             <div className="session-status">
               <div className="status-indicator flex items-center gap-2 mb-4">
                 <div className={`status-dot ${isSessionActive ? 'active' : ''}`}></div>
-                <span className="font-semibold">
-                  Status: {isSessionActive ? 'Session Running' : 'No Active Session'}
-                </span>
+                <span className="font-semibold">Status: {isSessionActive ? 'Session Running' : 'No Active Session'}</span>
               </div>
-              
-              <button 
-                className={`btn w-full ${isSessionActive ? 'btn-danger' : 'btn-success'}`}
-                onClick={toggleSession}
-              >
-                {isSessionActive ? (
-                  <><Square size={18} /> End Current Session</>
-                ) : (
-                  <><Play size={18} /> Start New Session</>
-                )}
+              <button className={`btn w-full ${isSessionActive ? 'btn-danger' : 'btn-success'}`} onClick={() => setIsSessionActive(!isSessionActive)}>
+                {isSessionActive ? <><Square size={18} /> End Session</> : <><Play size={18} /> Start Session</>}
               </button>
-              {isSessionActive && <p className="text-sm text-muted mt-2 text-center">Session started for tracking sales and inventory.</p>}
             </div>
           </div>
         )}
-
-        {/* General Settings */}
-        <div className="card">
-          <h3 className="mb-4 border-b pb-2">General Information</h3>
-          <div className="form-group">
-            <label>Store Name</label>
-            <input type="text" className="form-input" defaultValue="Jowens Cafe" disabled={userRole !== 'admin'} />
-          </div>
-          <div className="form-group">
-            <label>Currency Format</label>
-            <select className="form-input" disabled={userRole !== 'admin'}>
-              <option>PHP (₱)</option>
-              <option>USD ($)</option>
-            </select>
-          </div>
-        </div>
-
       </div>
     </div>
   );
@@ -484,10 +564,9 @@ const SettingsPage = ({ userRole, setUserRole, isSessionActive, setIsSessionActi
 
 // --- MAIN APP SHELL ---
 function App() {
-  // Global States
   const [isAppUnlocked, setIsAppUnlocked] = useState(false);
   const [currentPage, setCurrentPage] = useState('pos');
-  const [userRole, setUserRole] = useState('staff'); // 'staff' | 'admin'
+  const [userRole, setUserRole] = useState('staff'); 
   const [isSessionActive, setIsSessionActive] = useState(false);
 
   const menuItems = [
@@ -498,17 +577,8 @@ function App() {
     { id: 'settings', label: 'Settings', icon: Settings },
   ];
 
-  // Render App Lock Screen initially
   if (!isAppUnlocked) {
-    return (
-      <PinPad 
-        expectedPin="1234" 
-        onSuccess={() => setIsAppUnlocked(true)} 
-        onCancel={() => {}} // Does nothing on cancel initially
-        title="Unlock Jowens Cafe POS"
-        hint="1234"
-      />
-    );
+    return <PinPad expectedPin="1234" onSuccess={() => setIsAppUnlocked(true)} onCancel={() => {}} title="Unlock Jowens Cafe POS" hint="1234" />;
   }
 
   const renderContent = () => {
@@ -517,13 +587,7 @@ function App() {
       case 'inventory': return <InventoryPage />;
       case 'orders': return <OrdersPage />;
       case 'reports': return <ReportsPage />;
-      case 'settings': 
-        return <SettingsPage 
-          userRole={userRole} 
-          setUserRole={setUserRole} 
-          isSessionActive={isSessionActive}
-          setIsSessionActive={setIsSessionActive}
-        />;
+      case 'settings': return <SettingsPage userRole={userRole} setUserRole={setUserRole} isSessionActive={isSessionActive} setIsSessionActive={setIsSessionActive} />;
       default: return <PosPage />;
     }
   };
@@ -534,18 +598,12 @@ function App() {
         <div className="sidebar-header">
           <h1><Coffee size={24} color="var(--color-accent)" /> Jowens Cafe</h1>
         </div>
-        
         <nav className="sidebar-nav">
           {menuItems.map((item) => {
             const IconComponent = item.icon;
             return (
-              <div 
-                key={item.id}
-                className={`nav-item ${currentPage === item.id ? 'active' : ''}`}
-                onClick={() => setCurrentPage(item.id)}
-              >
-                <IconComponent size={20} />
-                <span>{item.label}</span>
+              <div key={item.id} className={`nav-item ${currentPage === item.id ? 'active' : ''}`} onClick={() => setCurrentPage(item.id)}>
+                <IconComponent size={20} /><span>{item.label}</span>
               </div>
             );
           })}
@@ -556,18 +614,14 @@ function App() {
         <header className="top-header">
           <div className="flex items-center gap-4">
             <h2>{menuItems.find(i => i.id === currentPage)?.label}</h2>
-            {isSessionActive && (
-              <span className="badge badge-success pulse-animation">● Session Active</span>
-            )}
+            {isSessionActive && <span className="badge badge-success pulse-animation">● Session Active</span>}
           </div>
           
           <div className="header-actions">
-            <button className="btn-icon-small"><Bell size={18} /></button>
             <div className="user-profile">
               <div className="avatar">{userRole === 'admin' ? 'A' : 'S'}</div>
               <span style={{textTransform: 'capitalize'}}>{userRole}</span>
             </div>
-            {/* Lock App Button */}
             <button className="btn-icon-small" onClick={() => setIsAppUnlocked(false)} title="Lock App">
               <Lock size={18} className="text-muted" />
             </button>
