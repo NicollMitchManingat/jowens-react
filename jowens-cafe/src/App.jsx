@@ -3,7 +3,7 @@ import {
   ShoppingCart, Package, ClipboardList, BarChart3, Settings, 
   Coffee, Plus, Minus, Users, Tag, X, Search, Edit, Trash2, 
   TrendingUp, Receipt, Bell, Lock, ShieldAlert, Play, Square, 
-  Delete, RefreshCcw, CakeSlice, Menu
+  Delete, RefreshCcw, CakeSlice, Menu, Sparkles
 } from 'lucide-react';
 import './App.css';
 
@@ -62,15 +62,18 @@ const PinPad = ({ expectedPin, onSuccess, onCancel, title, hint }) => {
 
 
 // --- 1. POS PAGE ---
-const PosPage = () => {
+const PosPage = ({ userRole }) => {
   const [customerCount, setCustomerCount] = useState(0);
   const [cart, setCart] = useState([]);
   const [discountType, setDiscountType] = useState('none');
   
-  // Modal State
+  // Modals State
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productNote, setProductNote] = useState('');
   const [selectedSize, setSelectedSize] = useState('Small');
+  
+  // Admin Add Product Modal State
+  const [showAddProductModal, setShowAddProductModal] = useState(false);
 
   // Category State
   const [activeCategory, setActiveCategory] = useState('All');
@@ -143,7 +146,52 @@ const PosPage = () => {
   const total = subtotal - discountAmount;
 
   return (
-    <div className="pos-container">
+    <div className="pos-container relative">
+      
+      {/* FLOATING ADD PRODUCT BUTTON (ADMIN ONLY) */}
+      {userRole === 'admin' && (
+        <button 
+          className="fab-add-product" 
+          onClick={() => setShowAddProductModal(true)}
+          title="Add Custom Product"
+        >
+          <Plus size={28} strokeWidth={2.5} />
+        </button>
+      )}
+
+      {/* 1. Add Custom Product Modal (Admin Only) */}
+      {showAddProductModal && (
+        <div className="modal-overlay" onClick={() => setShowAddProductModal(false)}>
+          <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Add Custom Product</h3>
+              <button className="btn-icon-small" onClick={() => setShowAddProductModal(false)}><X size={18} /></button>
+            </div>
+            <div className="modal-body">
+              <div className="form-group">
+                <label>Product Name</label>
+                <input type="text" className="form-input" placeholder="e.g., Matcha Croissant" />
+              </div>
+              <div className="form-group">
+                <label>Category</label>
+                <select className="form-input">
+                  {categories.filter(c => c !== 'All').map(c => <option key={c} value={c}>{c}</option>)}
+                </select>
+              </div>
+              <div className="form-group">
+                <label>Price (₱)</label>
+                <input type="number" className="form-input" placeholder="0.00" />
+              </div>
+            </div>
+            <div className="modal-footer">
+              <button className="btn btn-secondary" onClick={() => setShowAddProductModal(false)}>Cancel</button>
+              <button className="btn btn-primary" onClick={() => setShowAddProductModal(false)}>Save Product</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 2. Product Options Modal */}
       {selectedProduct && (
         <div className="modal-overlay" onClick={() => setSelectedProduct(null)}>
           <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
@@ -180,9 +228,12 @@ const PosPage = () => {
         </div>
       )}
 
+      {/* POS Top Header & Customer Count */}
       <div className="pos-header">
         <div className="categories-wrapper">
-          <h3>Menu Categories</h3>
+          <div className="flex justify-between items-center pr-4">
+            <h3>Menu Categories</h3>
+          </div>
           <div className="category-filters mt-2">
             {categories.map(cat => (
               <button key={cat} className={`btn-filter ${activeCategory === cat ? 'active' : ''}`} onClick={() => setActiveCategory(cat)}>{cat}</button>
@@ -200,6 +251,7 @@ const PosPage = () => {
         </div>
       </div>
 
+      {/* POS Grid */}
       <div className="pos-grid mt-2">
         <div className="menu-section">
           <div className="product-grid">
@@ -254,7 +306,12 @@ const PosPage = () => {
             </div>
             <div className="summary-row"><span>Subtotal</span><span>₱{subtotal.toFixed(2)}</span></div>
             {discountAmount > 0 && <div className="summary-row discount"><span>Discount</span><span>- ₱{discountAmount.toFixed(2)}</span></div>}
-            <div className="summary-row total"><span>Total</span><span>₱{total.toFixed(2)}</span></div>
+            
+            <div className="summary-row total items-center">
+              <span>Total</span>
+              <span>₱{total.toFixed(2)}</span>
+            </div>
+            
             <button className="btn btn-primary w-full mt-4" disabled={cart.length === 0 && customerCount === 0} onClick={resetOrder}>
               Checkout & Reset
             </button>
@@ -267,7 +324,7 @@ const PosPage = () => {
 
 
 // --- 2. INVENTORY PAGE ---
-const InventoryPage = () => {
+const InventoryPage = ({ userRole }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const inventoryData = [
     { id: 'INV-001', name: 'Arabica Beans (Dark Roast)', category: 'Ingredients', stock: 12, unit: 'kg', status: 'Good' },
@@ -289,26 +346,37 @@ const InventoryPage = () => {
           <Search size={18} className="text-muted" />
           <input type="text" placeholder="Search inventory..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
         </div>
-        <button className="btn btn-primary"><Plus size={18}/> Add Item</button>
+        {userRole === 'admin' && (
+          <button className="btn btn-primary"><Plus size={18}/> Add Item</button>
+        )}
       </div>
       <div className="card table-card table-responsive">
         <table className="data-table">
           <thead>
-            <tr><th>Item ID</th><th>Name</th><th>Category</th><th>In Stock</th><th>Status</th><th>Actions</th></tr>
+            <tr>
+              <th>Item ID</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>In Stock</th>
+              <th>Status</th>
+              {userRole === 'admin' && <th>Actions</th>}
+            </tr>
           </thead>
           <tbody>
             {filteredData.length > 0 ? filteredData.map(item => (
               <tr key={item.id}>
                 <td className="text-muted">{item.id}</td><td className="font-semibold">{item.name}</td><td>{item.category}</td><td>{item.stock} {item.unit}</td>
                 <td><span className={`badge ${item.status === 'Low Stock' ? 'badge-danger' : 'badge-success'}`}>{item.status}</span></td>
-                <td>
-                  <div className="action-buttons">
-                    <button className="btn-icon-small"><Edit size={14}/></button>
-                    <button className="btn-icon-small danger"><Trash2 size={14}/></button>
-                  </div>
-                </td>
+                {userRole === 'admin' && (
+                  <td>
+                    <div className="action-buttons">
+                      <button className="btn-icon-small"><Edit size={14}/></button>
+                      <button className="btn-icon-small danger"><Trash2 size={14}/></button>
+                    </div>
+                  </td>
+                )}
               </tr>
-            )) : (<tr><td colSpan="6" className="text-center py-4 text-muted">No items match your search.</td></tr>)}
+            )) : (<tr><td colSpan={userRole === 'admin' ? "6" : "5"} className="text-center py-4 text-muted">No items match your search.</td></tr>)}
           </tbody>
         </table>
       </div>
@@ -374,6 +442,13 @@ const ReportsPage = () => {
   ];
   const maxTraffic = Math.max(...hourlyTraffic.map(d => d.count));
 
+  const forecastData = [
+    { time: '08:00', val: 25 }, { time: '10:00', val: 90 }, { time: '12:00', val: 145 },
+    { time: '14:00', val: 65 }, { time: '16:00', val: 95 }, { time: '18:00', val: 110 },
+    { time: '20:00', val: 45 }
+  ];
+  const maxForecast = 160;
+
   const createLinePath = (data, max, width, height) => {
     const stepX = width / (data.length - 1);
     return data.map((d, i) => {
@@ -381,6 +456,20 @@ const ReportsPage = () => {
       const y = height - ((d.count / max) * height);
       return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
     }).join(' ');
+  };
+
+  const createForecastPath = (data, max, width, height) => {
+    const stepX = width / (data.length - 1);
+    return data.map((d, i) => {
+      const x = i * stepX;
+      const y = height - ((d.val / max) * height);
+      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+    }).join(' ');
+  };
+
+  const createAreaPath = (data, max, width, height) => {
+    const line = createForecastPath(data, max, width, height);
+    return `${line} L ${width} ${height} L 0 ${height} Z`;
   };
 
   return (
@@ -443,7 +532,7 @@ const ReportsPage = () => {
 
         <div className="card">
           <div className="flex justify-between items-center mb-6">
-            <h4 className="font-semibold text-lg">Hourly Customer Traffic</h4>
+            <h4 className="font-semibold text-lg">Live Customer Traffic</h4>
             <span className="badge badge-neutral">Today</span>
           </div>
           <div className="svg-chart-container" style={{ height: '220px', width: '100%', padding: '0 10px' }}>
@@ -463,6 +552,48 @@ const ReportsPage = () => {
               })}
             </svg>
           </div>
+        </div>
+      </div>
+
+      <div className="card mt-2">
+        <div className="flex justify-between items-center mb-6">
+          <div>
+            <h4 className="font-semibold text-lg flex items-center gap-2"><Sparkles size={18} className="text-warning"/> AI Demand Forecast</h4>
+            <p className="text-muted text-sm mt-1">Predicted incoming customer rush to help staff prepare for peak demand.</p>
+          </div>
+          <span className="badge badge-warning">Proactive Analysis</span>
+        </div>
+        <div className="svg-chart-container" style={{ height: '260px', width: '100%', padding: '0 10px' }}>
+          <svg viewBox="0 0 800 200" width="100%" height="100%" style={{overflow: 'visible'}} preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="forecastGradient" x1="0" x2="0" y1="0" y2="1">
+                <stop offset="0%" stopColor="var(--color-accent)" stopOpacity="0.3"/>
+                <stop offset="100%" stopColor="var(--color-accent)" stopOpacity="0.0"/>
+              </linearGradient>
+            </defs>
+            <line x1="0" y1="50" x2="800" y2="50" stroke="#e5e0d8" strokeDasharray="4" />
+            <line x1="0" y1="100" x2="800" y2="100" stroke="#e5e0d8" strokeDasharray="4" />
+            <line x1="0" y1="150" x2="800" y2="150" stroke="#e5e0d8" strokeDasharray="4" />
+            
+            <path d={createAreaPath(forecastData, maxForecast, 800, 160)} fill="url(#forecastGradient)" />
+            <path d={createForecastPath(forecastData, maxForecast, 800, 160)} fill="none" stroke="var(--color-accent)" strokeWidth="4" strokeDasharray="8 6" strokeLinecap="round" strokeLinejoin="round" />
+            
+            {forecastData.map((d, i) => {
+              const stepX = 800 / (forecastData.length - 1);
+              const x = i * stepX;
+              const y = 160 - ((d.val / maxForecast) * 160);
+              const isRush = d.val >= 90;
+              return (
+                <g key={d.time} className="chart-group">
+                  <circle cx={x} cy={y} r="6" fill={isRush ? "var(--color-danger)" : "var(--bg-surface)"} stroke={isRush ? "var(--color-danger)" : "var(--color-accent)"} strokeWidth="3" className="chart-point" />
+                  <text x={x} y="190" fontSize="12" fill="var(--text-muted)" textAnchor="middle">{d.time}</text>
+                  <text x={x} y={y - 15} fontSize="12" fill={isRush ? "var(--color-danger)" : "var(--text-main)"} fontWeight="bold" textAnchor="middle" className="chart-tooltip opacity-0 transition-opacity">
+                    {isRush ? `RUSH: ${d.val} Expected` : `${d.val} Expected`}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
         </div>
       </div>
     </div>
@@ -488,7 +619,7 @@ const SettingsPage = ({ userRole, setUserRole, isSessionActive, setIsSessionActi
               <span className="font-semibold text-lg">Current Role: {userRole === 'admin' ? 'Administrator' : 'Staff'}</span>
             </div>
             <p className="text-muted text-sm mb-4">
-              {userRole === 'admin' ? "You have full access to configuration." : "Your access is limited to POS operations."}
+              {userRole === 'admin' ? "You have full access to configuration and reporting." : "Your access is limited to POS operations."}
             </p>
             {userRole === 'staff' ? (
               <button className="btn btn-primary" onClick={() => setShowAdminModal(true)}>Switch to Admin</button>
@@ -528,7 +659,6 @@ function App() {
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-  // Security hook to ensure Staff cannot access Reports via direct state manipulation
   useEffect(() => {
     if (currentPage === 'reports' && userRole !== 'admin') {
       setCurrentPage('pos');
@@ -543,7 +673,6 @@ function App() {
     { id: 'settings', label: 'Settings', icon: Settings, adminOnly: false },
   ];
 
-  // Filter out adminOnly items if the user is staff
   const visibleMenuItems = menuItems.filter(item => !item.adminOnly || userRole === 'admin');
 
   if (!isAppUnlocked) {
@@ -552,12 +681,12 @@ function App() {
 
   const renderContent = () => {
     switch (currentPage) {
-      case 'pos': return <PosPage />;
-      case 'inventory': return <InventoryPage />;
+      case 'pos': return <PosPage userRole={userRole} />;
+      case 'inventory': return <InventoryPage userRole={userRole} />;
       case 'orders': return <OrdersPage />;
-      case 'reports': return userRole === 'admin' ? <ReportsPage /> : <PosPage />;
+      case 'reports': return userRole === 'admin' ? <ReportsPage /> : <PosPage userRole={userRole} />;
       case 'settings': return <SettingsPage userRole={userRole} setUserRole={setUserRole} isSessionActive={isSessionActive} setIsSessionActive={setIsSessionActive} />;
-      default: return <PosPage />;
+      default: return <PosPage userRole={userRole}/>;
     }
   };
 
