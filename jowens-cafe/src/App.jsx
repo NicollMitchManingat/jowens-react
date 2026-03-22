@@ -525,17 +525,26 @@ function App() {
   const [userRole, setUserRole] = useState('staff'); 
   const [isSessionActive, setIsSessionActive] = useState(false);
   
-  // Collapse States
   const [isDesktopCollapsed, setIsDesktopCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
 
+  // Security hook to ensure Staff cannot access Reports via direct state manipulation
+  useEffect(() => {
+    if (currentPage === 'reports' && userRole !== 'admin') {
+      setCurrentPage('pos');
+    }
+  }, [userRole, currentPage]);
+
   const menuItems = [
-    { id: 'pos', label: 'Point of Sale', icon: ShoppingCart },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'orders', label: 'Orders', icon: ClipboardList },
-    { id: 'reports', label: 'Reports', icon: BarChart3 },
-    { id: 'settings', label: 'Settings', icon: Settings },
+    { id: 'pos', label: 'Point of Sale', icon: ShoppingCart, adminOnly: false },
+    { id: 'inventory', label: 'Inventory', icon: Package, adminOnly: false },
+    { id: 'orders', label: 'Orders', icon: ClipboardList, adminOnly: false },
+    { id: 'reports', label: 'Reports', icon: BarChart3, adminOnly: true },
+    { id: 'settings', label: 'Settings', icon: Settings, adminOnly: false },
   ];
+
+  // Filter out adminOnly items if the user is staff
+  const visibleMenuItems = menuItems.filter(item => !item.adminOnly || userRole === 'admin');
 
   if (!isAppUnlocked) {
     return <PinPad expectedPin="1234" onSuccess={() => setIsAppUnlocked(true)} onCancel={() => {}} title="Unlock Jowens Cafe POS" hint="1234" />;
@@ -546,7 +555,7 @@ function App() {
       case 'pos': return <PosPage />;
       case 'inventory': return <InventoryPage />;
       case 'orders': return <OrdersPage />;
-      case 'reports': return <ReportsPage />;
+      case 'reports': return userRole === 'admin' ? <ReportsPage /> : <PosPage />;
       case 'settings': return <SettingsPage userRole={userRole} setUserRole={setUserRole} isSessionActive={isSessionActive} setIsSessionActive={setIsSessionActive} />;
       default: return <PosPage />;
     }
@@ -554,7 +563,7 @@ function App() {
 
   const handleNavClick = (id) => {
     setCurrentPage(id);
-    setIsMobileOpen(false); // Auto-close on mobile
+    setIsMobileOpen(false); 
   };
 
   const handleMenuToggle = () => {
@@ -568,7 +577,6 @@ function App() {
   return (
     <div className="app-container">
       
-      {/* Mobile Overlay */}
       <div 
         className={`sidebar-overlay ${isMobileOpen ? 'show' : ''}`} 
         onClick={() => setIsMobileOpen(false)}
@@ -582,7 +590,7 @@ function App() {
           </button>
         </div>
         <nav className="sidebar-nav">
-          {menuItems.map((item) => {
+          {visibleMenuItems.map((item) => {
             const IconComponent = item.icon;
             return (
               <div key={item.id} className={`nav-item ${currentPage === item.id ? 'active' : ''}`} onClick={() => handleNavClick(item.id)}>
@@ -596,12 +604,11 @@ function App() {
       <main className="main-content">
         <header className="top-header">
           <div className="flex items-center gap-4">
-            {/* Universal Hamburger Toggle */}
             <button className="menu-toggle btn-icon-small" onClick={handleMenuToggle}>
               <Menu size={20} />
             </button>
             
-            <h2>{menuItems.find(i => i.id === currentPage)?.label}</h2>
+            <h2>{visibleMenuItems.find(i => i.id === currentPage)?.label || 'Jowens Cafe'}</h2>
             {isSessionActive && <span className="badge badge-success pulse-animation session-badge">● Session Active</span>}
           </div>
           
