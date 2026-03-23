@@ -3,7 +3,7 @@ import {
   ShoppingCart, Package, ClipboardList, BarChart3, Settings, 
   Coffee, Plus, Minus, Users, Tag, X, Search, Edit, Trash2, 
   TrendingUp, Receipt, Bell, Lock, ShieldAlert, Play, Square, 
-  Delete, RefreshCcw, CakeSlice, Menu, Sparkles
+  Delete, RefreshCcw, CakeSlice, Menu, Sparkles, PlusCircle, AlertTriangle
 } from 'lucide-react';
 import './App.css';
 
@@ -67,15 +67,11 @@ const PosPage = ({ userRole }) => {
   const [cart, setCart] = useState([]);
   const [discountType, setDiscountType] = useState('none');
   
-  // Modals State
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [productNote, setProductNote] = useState('');
   const [selectedSize, setSelectedSize] = useState('Small');
   
-  // Admin Add Product Modal State
   const [showAddProductModal, setShowAddProductModal] = useState(false);
-
-  // Category State
   const [activeCategory, setActiveCategory] = useState('All');
   const categories = ['All', 'Drinks', 'Meals', 'Pastries', 'Desserts'];
 
@@ -159,7 +155,7 @@ const PosPage = ({ userRole }) => {
         </button>
       )}
 
-      {/* 1. Add Custom Product Modal (Admin Only) */}
+      {/* 1. Add Custom Product Modal */}
       {showAddProductModal && (
         <div className="modal-overlay" onClick={() => setShowAddProductModal(false)}>
           <div className="modal-content card" onClick={(e) => e.stopPropagation()}>
@@ -228,7 +224,6 @@ const PosPage = ({ userRole }) => {
         </div>
       )}
 
-      {/* POS Top Header & Customer Count */}
       <div className="pos-header">
         <div className="categories-wrapper">
           <div className="flex justify-between items-center pr-4">
@@ -251,7 +246,6 @@ const PosPage = ({ userRole }) => {
         </div>
       </div>
 
-      {/* POS Grid */}
       <div className="pos-grid mt-2">
         <div className="menu-section">
           <div className="product-grid">
@@ -332,7 +326,10 @@ const InventoryPage = ({ userRole }) => {
     { id: 'INV-003', name: 'Oat Milk', category: 'Dairy', stock: 15, unit: 'Liters', status: 'Good' },
     { id: 'INV-004', name: 'Vanilla Syrup', category: 'Syrups', stock: 2, unit: 'Bottles', status: 'Low Stock' },
     { id: 'INV-005', name: 'Paper Cups (12oz)', category: 'Packaging', stock: 450, unit: 'Pcs', status: 'Good' },
+    { id: 'INV-006', name: 'Fresh Strawberries', category: 'Fruits', stock: 1.5, unit: 'kg', status: 'Nearing Expiration' },
+    { id: 'INV-007', name: 'Whipping Cream', category: 'Dairy', stock: 3, unit: 'Liters', status: 'Nearing Expiration' },
   ];
+
   const filteredData = inventoryData.filter(item => 
     item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
     item.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -366,7 +363,15 @@ const InventoryPage = ({ userRole }) => {
             {filteredData.length > 0 ? filteredData.map(item => (
               <tr key={item.id}>
                 <td className="text-muted">{item.id}</td><td className="font-semibold">{item.name}</td><td>{item.category}</td><td>{item.stock} {item.unit}</td>
-                <td><span className={`badge ${item.status === 'Low Stock' ? 'badge-danger' : 'badge-success'}`}>{item.status}</span></td>
+                <td>
+                  <span className={`badge ${
+                    item.status === 'Low Stock' ? 'badge-danger' : 
+                    item.status === 'Nearing Expiration' ? 'badge-warning' : 
+                    'badge-success'
+                  }`}>
+                    {item.status}
+                  </span>
+                </td>
                 {userRole === 'admin' && (
                   <td>
                     <div className="action-buttons">
@@ -449,6 +454,22 @@ const ReportsPage = () => {
   ];
   const maxForecast = 160;
 
+  const inventoryAlerts = [
+    { item: 'Whole Milk', issue: 'Low Stock', qty: '4 Liters' },
+    { item: 'Vanilla Syrup', issue: 'Low Stock', qty: '2 Bottles' },
+    { item: 'Fresh Strawberries', issue: 'Expiring Soon', qty: '1.5 kg' },
+    { item: 'Whipping Cream', issue: 'Expiring Soon', qty: '3 Liters' }
+  ];
+
+  const stockValueByCategory = [
+    { category: 'Coffee Beans', value: 15000 },
+    { category: 'Dairy & Alts', value: 8500 },
+    { category: 'Syrups', value: 5400 },
+    { category: 'Packaging', value: 3200 },
+    { category: 'Food', value: 6800 },
+  ];
+  const maxStockVal = Math.max(...stockValueByCategory.map(d => d.value));
+
   const createLinePath = (data, max, width, height) => {
     const stepX = width / (data.length - 1);
     return data.map((d, i) => {
@@ -474,6 +495,7 @@ const ReportsPage = () => {
 
   return (
     <div className="page-content reports-page">
+      {/* 1. KPIs */}
       <div className="metrics-grid">
         <div className="card metric-card">
           <div className="metric-icon bg-success-light"><TrendingUp size={24} className="text-success" /></div>
@@ -501,6 +523,7 @@ const ReportsPage = () => {
         </div>
       </div>
 
+      {/* 2. Sales Charts */}
       <div className="charts-grid mt-4">
         <div className="card">
           <div className="flex justify-between items-center mb-6">
@@ -555,6 +578,7 @@ const ReportsPage = () => {
         </div>
       </div>
 
+      {/* 3. AI Demand Forecasting */}
       <div className="card mt-2">
         <div className="flex justify-between items-center mb-6">
           <div>
@@ -596,6 +620,55 @@ const ReportsPage = () => {
           </svg>
         </div>
       </div>
+
+      {/* 4. INVENTORY ANALYSIS ADDITION */}
+      <div className="charts-grid mt-4">
+        {/* Inventory Alerts */}
+        <div className="card">
+          <div className="flex justify-between items-center mb-6">
+            <h4 className="font-semibold text-lg flex items-center gap-2">
+              <AlertTriangle size={18} className="text-danger" /> Inventory Alerts
+            </h4>
+            <span className="badge badge-danger">Action Needed</span>
+          </div>
+          <div className="flex flex-col gap-4">
+            {inventoryAlerts.map((alert, i) => (
+              <div key={i} className="flex justify-between items-center border-b pb-2">
+                <div>
+                  <p className="font-semibold text-sm m-0">{alert.item}</p>
+                  <p className="text-xs text-muted mt-1">{alert.qty} Remaining</p>
+                </div>
+                <span className={`badge ${alert.issue === 'Low Stock' ? 'badge-danger' : 'badge-warning'}`}>
+                  {alert.issue}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Stock Value by Category */}
+        <div className="card">
+          <div className="flex justify-between items-center mb-6">
+            <h4 className="font-semibold text-lg flex items-center gap-2">
+              <Package size={18} className="text-primary" /> Stock Value by Category
+            </h4>
+          </div>
+          <div className="flex flex-col gap-4 justify-center" style={{ height: 'calc(100% - 60px)' }}>
+            {stockValueByCategory.map((d, i) => (
+              <div key={i} className="w-full">
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="text-muted">{d.category}</span>
+                  <span className="font-semibold">₱{d.value.toLocaleString()}</span>
+                </div>
+                <div style={{ width: '100%', backgroundColor: 'var(--bg-hover)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div style={{ width: `${(d.value / maxStockVal) * 100}%`, backgroundColor: 'var(--color-primary)', height: '100%', borderRadius: '4px' }}></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
     </div>
   );
 };
