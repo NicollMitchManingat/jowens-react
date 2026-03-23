@@ -3,7 +3,7 @@ import {
   ShoppingCart, Package, ClipboardList, BarChart3, Settings, 
   Coffee, Plus, Minus, Users, Tag, X, Search, Edit, Trash2, 
   TrendingUp, Receipt, Bell, Lock, ShieldAlert, Play, Square, 
-  Delete, RefreshCcw, CakeSlice, Menu, Sparkles, PlusCircle, AlertTriangle
+  Delete, RefreshCcw, CakeSlice, Menu, Sparkles, PlusCircle, AlertTriangle, ArrowDownRight
 } from 'lucide-react';
 import './App.css';
 
@@ -435,18 +435,21 @@ const OrdersPage = () => {
 
 // --- 4. REPORTS PAGE ---
 const ReportsPage = () => {
+  // Weekly Revenue Data
   const weeklyRevenue = [
     { day: 'Mon', val: 3200 }, { day: 'Tue', val: 4100 }, { day: 'Wed', val: 3800 },
     { day: 'Thu', val: 5600 }, { day: 'Fri', val: 8200 }, { day: 'Sat', val: 12450 }, { day: 'Sun', val: 9100 }
   ];
   const maxRev = Math.max(...weeklyRevenue.map(d => d.val));
 
+  // Current Hourly Traffic Data
   const hourlyTraffic = [
     { time: '8AM', count: 12 }, { time: '10AM', count: 28 }, { time: '12PM', count: 45 },
     { time: '2PM', count: 32 }, { time: '4PM', count: 50 }, { time: '6PM', count: 18 }
   ];
   const maxTraffic = Math.max(...hourlyTraffic.map(d => d.count));
 
+  // AI Demand Forecasting Data
   const forecastData = [
     { time: '08:00', val: 25 }, { time: '10:00', val: 90 }, { time: '12:00', val: 145 },
     { time: '14:00', val: 65 }, { time: '16:00', val: 95 }, { time: '18:00', val: 110 },
@@ -454,47 +457,40 @@ const ReportsPage = () => {
   ];
   const maxForecast = 160;
 
-  const inventoryAlerts = [
-    { item: 'Whole Milk', issue: 'Low Stock', qty: '4 Liters' },
-    { item: 'Vanilla Syrup', issue: 'Low Stock', qty: '2 Bottles' },
-    { item: 'Fresh Strawberries', issue: 'Expiring Soon', qty: '1.5 kg' },
-    { item: 'Whipping Cream', issue: 'Expiring Soon', qty: '3 Liters' }
+  // --- NEW INVENTORY ANALYTICS DATA ---
+  const stockMovement = [
+    { name: 'Espresso Beans', sold: 180, status: 'Fast' },
+    { name: 'Paper Cups', sold: 145, status: 'Fast' },
+    { name: 'Oat Milk', sold: 60, status: 'Steady' },
+    { name: 'Vanilla Syrup', sold: 15, status: 'Slow' },
+    { name: 'Earl Grey Tea', sold: 5, status: 'Slow' }
   ];
+  const maxSold = Math.max(...stockMovement.map(d => d.sold));
 
-  const stockValueByCategory = [
-    { category: 'Coffee Beans', value: 15000 },
-    { category: 'Dairy & Alts', value: 8500 },
-    { category: 'Syrups', value: 5400 },
-    { category: 'Packaging', value: 3200 },
-    { category: 'Food', value: 6800 },
+  const wastageTrends = [
+    { week: 'W1', cost: 1250 }, { week: 'W2', cost: 980 }, 
+    { week: 'W3', cost: 1400 }, { week: 'W4', cost: 650 }
   ];
-  const maxStockVal = Math.max(...stockValueByCategory.map(d => d.value));
+  const maxWastage = 1500;
 
-  const createLinePath = (data, max, width, height) => {
+
+  const createLinePath = (data, max, width, height, dataKey = 'count') => {
     const stepX = width / (data.length - 1);
     return data.map((d, i) => {
       const x = i * stepX;
-      const y = height - ((d.count / max) * height);
+      const y = height - ((d[dataKey] / max) * height);
       return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
     }).join(' ');
   };
 
-  const createForecastPath = (data, max, width, height) => {
-    const stepX = width / (data.length - 1);
-    return data.map((d, i) => {
-      const x = i * stepX;
-      const y = height - ((d.val / max) * height);
-      return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-    }).join(' ');
-  };
-
-  const createAreaPath = (data, max, width, height) => {
-    const line = createForecastPath(data, max, width, height);
+  const createAreaPath = (data, max, width, height, dataKey = 'val') => {
+    const line = createLinePath(data, max, width, height, dataKey);
     return `${line} L ${width} ${height} L 0 ${height} Z`;
   };
 
   return (
     <div className="page-content reports-page">
+      
       {/* 1. KPIs */}
       <div className="metrics-grid">
         <div className="card metric-card">
@@ -516,14 +512,14 @@ const ReportsPage = () => {
         <div className="card metric-card">
           <div className="metric-icon bg-warning-light"><Users size={24} className="text-warning" /></div>
           <div className="metric-info">
-            <p className="text-muted">Total Customers Today</p>
+            <p className="text-muted">Total Customers</p>
             <h3>124</h3>
             <span className="trend positive">+12% vs yesterday</span>
           </div>
         </div>
       </div>
 
-      {/* 2. Sales Charts */}
+      {/* 2. Sales & Traffic Charts */}
       <div className="charts-grid mt-4">
         <div className="card">
           <div className="flex justify-between items-center mb-6">
@@ -560,7 +556,7 @@ const ReportsPage = () => {
           </div>
           <div className="svg-chart-container" style={{ height: '220px', width: '100%', padding: '0 10px' }}>
              <svg viewBox="0 0 400 200" width="100%" height="100%" style={{overflow: 'visible'}} preserveAspectRatio="none">
-              <path d={createLinePath(hourlyTraffic, maxTraffic, 400, 160)} fill="none" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+              <path d={createLinePath(hourlyTraffic, maxTraffic, 400, 160, 'count')} fill="none" stroke="var(--color-primary)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
               {hourlyTraffic.map((d, i) => {
                 const stepX = 400 / (hourlyTraffic.length - 1);
                 const x = i * stepX;
@@ -587,7 +583,7 @@ const ReportsPage = () => {
           </div>
           <span className="badge badge-warning">Proactive Analysis</span>
         </div>
-        <div className="svg-chart-container" style={{ height: '260px', width: '100%', padding: '0 10px' }}>
+        <div className="svg-chart-container" style={{ height: '200px', width: '100%', padding: '0 10px' }}>
           <svg viewBox="0 0 800 200" width="100%" height="100%" style={{overflow: 'visible'}} preserveAspectRatio="none">
             <defs>
               <linearGradient id="forecastGradient" x1="0" x2="0" y1="0" y2="1">
@@ -599,8 +595,8 @@ const ReportsPage = () => {
             <line x1="0" y1="100" x2="800" y2="100" stroke="#e5e0d8" strokeDasharray="4" />
             <line x1="0" y1="150" x2="800" y2="150" stroke="#e5e0d8" strokeDasharray="4" />
             
-            <path d={createAreaPath(forecastData, maxForecast, 800, 160)} fill="url(#forecastGradient)" />
-            <path d={createForecastPath(forecastData, maxForecast, 800, 160)} fill="none" stroke="var(--color-accent)" strokeWidth="4" strokeDasharray="8 6" strokeLinecap="round" strokeLinejoin="round" />
+            <path d={createAreaPath(forecastData, maxForecast, 800, 160, 'val')} fill="url(#forecastGradient)" />
+            <path d={createLinePath(forecastData, maxForecast, 800, 160, 'val')} fill="none" stroke="var(--color-accent)" strokeWidth="4" strokeDasharray="8 6" strokeLinecap="round" strokeLinejoin="round" />
             
             {forecastData.map((d, i) => {
               const stepX = 800 / (forecastData.length - 1);
@@ -621,54 +617,69 @@ const ReportsPage = () => {
         </div>
       </div>
 
-      {/* 4. INVENTORY ANALYSIS ADDITION */}
-      <div className="charts-grid mt-4">
-        {/* Inventory Alerts */}
-        <div className="card">
-          <div className="flex justify-between items-center mb-6">
-            <h4 className="font-semibold text-lg flex items-center gap-2">
-              <AlertTriangle size={18} className="text-danger" /> Inventory Alerts
-            </h4>
-            <span className="badge badge-danger">Action Needed</span>
-          </div>
-          <div className="flex flex-col gap-4">
-            {inventoryAlerts.map((alert, i) => (
-              <div key={i} className="flex justify-between items-center border-b pb-2">
-                <div>
-                  <p className="font-semibold text-sm m-0">{alert.item}</p>
-                  <p className="text-xs text-muted mt-1">{alert.qty} Remaining</p>
-                </div>
-                <span className={`badge ${alert.issue === 'Low Stock' ? 'badge-danger' : 'badge-warning'}`}>
-                  {alert.issue}
-                </span>
-              </div>
-            ))}
+      {/* 4. NEW: INVENTORY & WASTAGE ANALYSIS */}
+      <div className="card mt-2">
+        <div className="flex justify-between items-center mb-6 border-b pb-4">
+          <div>
+            <h4 className="font-semibold text-lg flex items-center gap-2"><Package size={18} className="text-primary"/> Inventory Insights & Wastage</h4>
+            <p className="text-muted text-sm mt-1">Track fast-moving items and monitor the financial impact of spoiled goods.</p>
           </div>
         </div>
 
-        {/* Stock Value by Category */}
-        <div className="card">
-          <div className="flex justify-between items-center mb-6">
-            <h4 className="font-semibold text-lg flex items-center gap-2">
-              <Package size={18} className="text-primary" /> Stock Value by Category
-            </h4>
+        <div className="charts-grid mt-4">
+          
+          {/* Stock Movement Tracker (Horizontal Bar Chart) */}
+          <div>
+            <h5 className="font-semibold mb-4 text-muted">Stock Movement Rate (Units Sold this Week)</h5>
+            <div className="svg-chart-container" style={{ height: '220px', width: '100%' }}>
+              <svg viewBox="0 0 400 200" width="100%" height="100%">
+                {stockMovement.map((item, i) => {
+                  const barWidth = (item.sold / maxSold) * 200;
+                  const isSlow = item.status === 'Slow';
+                  return (
+                    <g key={item.name} className="chart-group">
+                      <text x="0" y={25 + i * 40} fontSize="12" fill="var(--text-main)" fontWeight="500">{item.name}</text>
+                      <rect x="130" y={15 + i * 40} width={barWidth} height="12" fill={isSlow ? "var(--color-warning)" : "var(--color-primary)"} rx="4" className="chart-bar" />
+                      <text x={140 + barWidth} y={25 + i * 40} fontSize="11" fill="var(--text-muted)">{item.sold} {isSlow ? '(Slow)' : ''}</text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
           </div>
-          <div className="flex flex-col gap-4 justify-center" style={{ height: 'calc(100% - 60px)' }}>
-            {stockValueByCategory.map((d, i) => (
-              <div key={i} className="w-full">
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-muted">{d.category}</span>
-                  <span className="font-semibold">₱{d.value.toLocaleString()}</span>
-                </div>
-                <div style={{ width: '100%', backgroundColor: 'var(--bg-hover)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ width: `${(d.value / maxStockVal) * 100}%`, backgroundColor: 'var(--color-primary)', height: '100%', borderRadius: '4px' }}></div>
-                </div>
-              </div>
-            ))}
+
+          {/* Wastage Trend Tracker (Line Chart) */}
+          <div>
+            <h5 className="font-semibold mb-4 flex justify-between">
+               <span className="text-muted">Wastage Cost Trend (Monthly)</span>
+               <span className="text-danger flex items-center gap-1 text-sm"><ArrowDownRight size={14}/> Reduced 53%</span>
+            </h5>
+            <div className="svg-chart-container" style={{ height: '220px', width: '100%', padding: '0 10px' }}>
+              <svg viewBox="0 0 400 200" width="100%" height="100%" style={{overflow: 'visible'}} preserveAspectRatio="none">
+                <line x1="0" y1="50" x2="400" y2="50" stroke="#e5e0d8" strokeDasharray="4" />
+                <line x1="0" y1="100" x2="400" y2="100" stroke="#e5e0d8" strokeDasharray="4" />
+                <line x1="0" y1="150" x2="400" y2="150" stroke="#e5e0d8" strokeDasharray="4" />
+
+                <path d={createLinePath(wastageTrends, maxWastage, 400, 160, 'cost')} fill="none" stroke="var(--color-danger)" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
+                
+                {wastageTrends.map((d, i) => {
+                  const stepX = 400 / (wastageTrends.length - 1);
+                  const x = i * stepX;
+                  const y = 160 - ((d.cost / maxWastage) * 160);
+                  return (
+                    <g key={d.week} className="chart-group">
+                      <circle cx={x} cy={y} r="6" fill="var(--bg-surface)" stroke="var(--color-danger)" strokeWidth="3" className="chart-point" />
+                      <text x={x} y="190" fontSize="12" fill="var(--text-muted)" textAnchor="middle">{d.week}</text>
+                      <text x={x} y={y - 15} fontSize="12" fill="var(--color-danger)" fontWeight="bold" textAnchor="middle" className="chart-tooltip opacity-0 transition-opacity">₱{d.cost}</text>
+                    </g>
+                  );
+                })}
+              </svg>
+            </div>
           </div>
         </div>
       </div>
-
+      
     </div>
   );
 };
