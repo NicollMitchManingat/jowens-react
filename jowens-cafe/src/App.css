@@ -40,12 +40,15 @@ body {
 /* Base Utility Classes */
 .relative { position: relative; }
 .flex { display: flex; }
+.flex-col { flex-direction: column; }
 .flex-1 { flex: 1; }
 .items-center { align-items: center; }
 .justify-center { justify-content: center; }
 .justify-between { justify-content: space-between; }
+.gap-1 { gap: 0.25rem; }
 .gap-2 { gap: 0.5rem; }
 .gap-4 { gap: 1rem; }
+.m-0 { margin: 0; }
 .mb-1 { margin-bottom: 0.25rem; }
 .mb-2 { margin-bottom: 0.5rem; }
 .mb-4 { margin-bottom: 1rem; }
@@ -55,11 +58,18 @@ body {
 .mt-4 { margin-top: 1rem; }
 .pr-4 { padding-right: 1rem; }
 .w-full { width: 100%; }
+.text-xs { font-size: 0.75rem; }
 .text-sm { font-size: 0.85rem; }
 .text-lg { font-size: 1.15rem; }
 .text-center { text-align: center; }
 .border-b { border-bottom: 1px solid var(--border-color); }
+.border-t { border-top: 1px solid var(--border-color); }
+.border-dashed { border-style: dashed; }
+.pt-3 { padding-top: 0.75rem; }
 .pb-2 { padding-bottom: 0.5rem; }
+.pb-4 { padding-bottom: 1rem; }
+.transition-transform { transition: transform 0.2s ease; }
+.hover\:scale-110:hover { transform: scale(1.1); }
 
 /* --- Base Layout / Flexbox Shell --- */
 .app-container { display: flex; height: 100vh; width: 100vw; overflow: hidden; position: relative; }
@@ -109,6 +119,13 @@ body {
 .badge-warning { background-color: #fef5e7; color: var(--color-warning); }
 .badge-neutral { background-color: var(--bg-hover); color: var(--text-muted); }
 
+/* Typography */
+.font-semibold { font-weight: 600; }
+.text-muted { color: var(--text-muted); }
+.text-primary { color: var(--color-primary); }
+.text-danger { color: var(--color-danger); }
+.text-warning { color: var(--color-warning); }
+
 /* Buttons */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.25rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s ease; font-size: 0.95rem; }
 .btn:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -124,7 +141,6 @@ body {
 /* Icon Buttons */
 .btn-icon-small { display: flex; align-items: center; justify-content: center; padding: 0.4rem; border-radius: 6px; background-color: var(--bg-main); color: var(--text-main); border: 1px solid var(--border-color); cursor: pointer; transition: all 0.15s ease; }
 .btn-icon-small:hover { background-color: var(--border-color); }
-
 
 /* --- Floating Action Button (FAB) --- */
 .fab-add-product {
@@ -345,8 +361,3 @@ body {
   .modal-footer { flex-direction: column; }
   .modal-footer .btn { width: 100%; }
 }
-
-/* Additional Helper classes for new elements */
-.flex-col { flex-direction: column; }
-.text-xs { font-size: 0.75rem; }
-.m-0 { margin: 0; }
