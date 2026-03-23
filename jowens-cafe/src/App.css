@@ -345,3 +345,8 @@ body {
   .modal-footer { flex-direction: column; }
   .modal-footer .btn { width: 100%; }
 }
+
+/* Additional Helper classes for new elements */
+.flex-col { flex-direction: column; }
+.text-xs { font-size: 0.75rem; }
+.m-0 { margin: 0; }
